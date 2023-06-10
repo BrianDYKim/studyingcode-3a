@@ -1,6 +1,6 @@
 import * as winston from 'winston';
-import * as winstonDaily from 'winston-daily-rotate-file';
-import * as moment from 'moment-timezone';
+import winstonDaily from 'winston-daily-rotate-file';
+import moment from 'moment-timezone';
 import { utilities as nestWinstonUtilities } from 'nest-winston/dist/winston.utilities';
 import { WinstonModule } from 'nest-winston';
 

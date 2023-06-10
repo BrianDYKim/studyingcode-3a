@@ -2,6 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
 import { winstonLogger } from './common/logging/set-winston.logger';
+import { SuccessInterceptor } from './common/interceptors/success.interceptor';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
+import expressBasicAuth from 'express-basic-auth';
 
 dotenv.config();
 
@@ -16,21 +21,65 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Logging
-  app.useLogger(winstonLogger);
+  app.useLogger(logger);
 
+  // CORS
   app.enableCors({
     origin: true,
     credentials: true,
   });
 
   // Interceptors
+  app.useGlobalInterceptors(new SuccessInterceptor());
+
+  // Pipes
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+    }),
+  );
 
   // Filters
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // Swagger Security
+  app.use(
+    ['/backend-docs', '/docs-json'],
+    expressBasicAuth({
+      challenge: true,
+      users: {
+        [process.env.SWAGGER_USER]: process.env.SWAGGER_PASSWORD,
+      },
+    }),
+  );
 
   // Documentation
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle(APPLICATION_NAME)
+    .setDescription(APPLICATION_DESCRIPTION)
+    .setVersion(APPLICATION_VERSION)
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT Token',
+        in: 'header',
+      },
+      'accesskey',
+    )
+    .build();
 
-  await app.listen(3000);
+  const document: OpenAPIObject = SwaggerModule.createDocument(
+    app,
+    swaggerConfig,
+  );
+
+  SwaggerModule.setup('backend-docs', app, document);
+
+  await app.listen(PORT);
 }
+
 bootstrap();

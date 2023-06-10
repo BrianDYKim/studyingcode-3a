@@ -13,5 +13,5 @@ COPY package*.json .
 COPY .env .
 RUN npm ci --omit=dev && npm i -g pm2
 COPY --from=BUILDER /app/dist ./dist
-EXPOSE 3000
+EXPOSE 3500
 CMD ["pm2-runtime", "dist/main.js"]
